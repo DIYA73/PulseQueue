@@ -1,0 +1,21 @@
+{
+  "name": "pulsequeue",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "db:migrate": "pnpm --filter @pulsequeue/db migrate",
+    "infra:up": "docker-compose up -d",
+    "infra:down": "docker-compose down",
+    "demo:worker": "pnpm --filter @pulsequeue/example worker",
+    "demo:trigger": "pnpm --filter @pulsequeue/example trigger",
+    "demo:trigger:retry": "pnpm --filter @pulsequeue/example trigger payment-retry 49.99"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
+  }
+}

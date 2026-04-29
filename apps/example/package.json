@@ -1,0 +1,19 @@
+{
+  "name": "@pulsequeue/example",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "worker": "tsx --env-file=../../.env src/worker.ts",
+    "trigger": "tsx --env-file=../../.env src/trigger.ts"
+  },
+  "dependencies": {
+    "@pulsequeue/core": "workspace:*",
+    "@pulsequeue/worker": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  }
+}
