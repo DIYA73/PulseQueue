@@ -1,5 +1,7 @@
 # PulseQueue
 
+![CI](https://github.com/DIYA73/PulseQueue/actions/workflows/ci.yml/badge.svg)
+
 Open-source durable workflow engine — self-hostable alternative to Inngest and Trigger.dev.
 
 Write plain async functions. PulseQueue makes them survive crashes, retries, and server restarts — with automatic retry, sleep/wait primitives, fan-out/fan-in, cron jobs, and **step-level replay** from any point in a failed run.

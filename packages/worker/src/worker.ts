@@ -3,16 +3,23 @@ import { lookup } from './registry.js';
 import { createStepContext } from './context.js';
 import { setRunStatus, getRunPayload, getRunStatus } from './db.js';
 import { StepFailed, WorkflowSuspended } from './errors.js';
+import { publishToDLQ, startDLQWatcher } from './dlq.js';
+import { isShuttingDown, setActiveJob, registerShutdownHandler } from './shutdown.js';
 
-const STREAM = 'pq:jobs';
-const GROUP = 'workers';
+const STREAM   = 'pq:jobs';
+const GROUP    = 'workers';
 const CONSUMER = `worker-${process.pid}`;
 
 type StreamMessage = [id: string, fields: string[]];
-type StreamResult = [streamName: string, messages: StreamMessage[]];
+type StreamResult  = [streamName: string, messages: StreamMessage[]];
 
 export async function startWorker(): Promise<void> {
   const redis = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379');
+
+  registerShutdownHandler();
+
+  // Start DLQ watcher in background (non-blocking)
+  startDLQWatcher(redis).catch(() => {});
 
   try {
     await redis.xgroup('CREATE', STREAM, GROUP, '$', 'MKSTREAM');
@@ -22,7 +29,7 @@ export async function startWorker(): Promise<void> {
 
   console.log(`[worker] ${CONSUMER} ready — listening on ${STREAM}`);
 
-  while (true) {
+  while (!isShuttingDown()) {
     await drainRetryQueue(redis);
 
     const result = (await redis.xreadgroup(
@@ -43,30 +50,31 @@ export async function startWorker(): Promise<void> {
       try {
         job = JSON.parse(payloadStr);
       } catch {
-        console.error('[worker] bad message payload, discarding');
         await redis.xack(STREAM, GROUP, msgId);
         continue;
       }
 
       if (!job) continue;
-      await processJob(job.run_id, job.workflow, redis);
+
+      const jobPromise = processJob(job.run_id, job.workflow, redis);
+      setActiveJob(jobPromise);
+      await jobPromise;
+      setActiveJob(null);
+
       await redis.xack(STREAM, GROUP, msgId);
     }
   }
 }
 
 async function processJob(runId: string, workflowName: string, redis: Redis): Promise<void> {
-  // Skip runs that finished or were cancelled externally
   const currentStatus = await getRunStatus(runId);
-  if (currentStatus === 'completed' || currentStatus === 'cancelled') {
-    console.log(`[worker] skipping ${runId} (status: ${currentStatus})`);
-    return;
-  }
+  if (currentStatus === 'completed' || currentStatus === 'cancelled') return;
 
   const def = lookup(workflowName);
   if (!def) {
     console.error(`[worker] unknown workflow "${workflowName}"`);
     await setRunStatus(runId, 'failed', `No handler registered for "${workflowName}"`);
+    await publishToDLQ(redis, runId, workflowName, `No handler registered`);
     return;
   }
 
@@ -81,14 +89,13 @@ async function processJob(runId: string, workflowName: string, redis: Redis): Pr
     console.log(`[worker] run ${runId} completed`);
   } catch (err) {
     if (err instanceof WorkflowSuspended) {
-      // Normal — run is sleeping, scheduler will re-enqueue it
       console.log(`[worker] run ${runId} suspended: ${err.reason}`);
     } else if (!(err instanceof StepFailed)) {
       const message = err instanceof Error ? err.message : String(err);
       await setRunStatus(runId, 'failed', message);
+      await publishToDLQ(redis, runId, workflowName, message);
       console.error(`[worker] run ${runId} failed:`, message);
     }
-    // StepFailed: already handled in context.ts (retry scheduled or run marked failed)
   }
 }
 
