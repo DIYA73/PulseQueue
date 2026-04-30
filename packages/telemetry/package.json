@@ -1,0 +1,28 @@
+{
+  "name": "@pulsequeue/telemetry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@opentelemetry/api":                       "^1.9.0",
+    "@opentelemetry/exporter-trace-otlp-http":  "^0.57.0",
+    "@opentelemetry/resources":                  "^1.26.0",
+    "@opentelemetry/sdk-trace-node":             "^1.26.0",
+    "@opentelemetry/semantic-conventions":       "^1.27.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

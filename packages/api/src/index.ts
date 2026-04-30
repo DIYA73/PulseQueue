@@ -1,9 +1,12 @@
-import Fastify from 'fastify';
+import { initTelemetry } from '@pulsequeue/telemetry';
+import Fastify           from 'fastify';
 import { authPlugin }    from './plugins/auth.js';
 import { triggerRoutes } from './routes/trigger.js';
 import { runRoutes }     from './routes/runs.js';
 import { cronRoutes }    from './routes/crons.js';
 import { replayRoutes }  from './routes/replay.js';
+
+initTelemetry('pulsequeue-api');
 
 const app = Fastify({ logger: true });
 

@@ -4,9 +4,9 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: pulsequeue
+      POSTGRES_USER:     pulsequeue
       POSTGRES_PASSWORD: pulsequeue
-      POSTGRES_DB: pulsequeue
+      POSTGRES_DB:       pulsequeue
     ports:
       - '5432:5432'
     volumes:
@@ -29,6 +29,19 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - '16686:16686'   # Jaeger UI
+      - '4318:4318'     # OTLP HTTP receiver (traces go here)
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:16686']
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 volumes:
   postgres_data:
