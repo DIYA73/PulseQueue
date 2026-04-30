@@ -54,5 +54,4 @@ CREATE TABLE scheduled_jobs (
     CHECK (type IN ('sleep','cron'))
 );
 
-CREATE INDEX idx_scheduled_jobs_due_at ON scheduled_jobs(due_at)
-  WHERE due_at > now();
+CREATE INDEX idx_scheduled_jobs_due_at ON scheduled_jobs(due_at);
