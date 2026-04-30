@@ -56,6 +56,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Create .env for migration script
+        run: |
+          echo "DATABASE_URL=postgres://pulsequeue:pulsequeue@localhost:5432/pulsequeue" > .env
+          echo "REDIS_URL=redis://localhost:6379" >> .env
+
       - name: Run migrations
         run: pnpm db:migrate
 
